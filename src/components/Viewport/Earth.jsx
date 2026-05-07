@@ -26,11 +26,15 @@ export default function Earth() {
   useEffect(() => {
     const loader = new THREE.TextureLoader()
     let cancelled = false
+    // Use Vite's BASE_URL so texture paths resolve correctly under
+    // GitHub Pages subpaths (e.g. /celestia/) as well as local dev (/).
+    const base = import.meta.env.BASE_URL || '/'
+    const url = (p) => (base.endsWith('/') ? base : base + '/') + p
     Promise.all([
-      new Promise((res) => loader.load('/textures/earth_day.jpg', res, undefined, () => res(null))),
-      new Promise((res) => loader.load('/textures/earth_normal.jpg', res, undefined, () => res(null))),
-      new Promise((res) => loader.load('/textures/earth_specular.jpg', res, undefined, () => res(null))),
-      new Promise((res) => loader.load('/textures/earth_clouds.png', res, undefined, () => res(null))),
+      new Promise((res) => loader.load(url('textures/earth_day.jpg'), res, undefined, () => res(null))),
+      new Promise((res) => loader.load(url('textures/earth_normal.jpg'), res, undefined, () => res(null))),
+      new Promise((res) => loader.load(url('textures/earth_specular.jpg'), res, undefined, () => res(null))),
+      new Promise((res) => loader.load(url('textures/earth_clouds.png'), res, undefined, () => res(null))),
     ]).then(([day, normal, spec, clouds]) => {
       if (cancelled) return
       ;[day, normal, spec, clouds].forEach((t) => { if (t) configEarthTexture(t) })
