@@ -1,0 +1,105 @@
+:root {
+  --color-bg: #050A14;
+  --color-bg-panel: #0A1628;
+  --color-cyan: #00E5FF;
+  --color-gold: #FFB830;
+  --color-violet: #8B7CF8;
+  --color-text: #E8F0F8;
+  --color-text-dim: #8B9CB8;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050A14;
+  color: #E8F0F8;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.2);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.4);
+}
+
+/* Canvas container */
+canvas {
+  display: block;
+  outline: none;
+  touch-action: none; /* let OrbitControls handle pinch/drag without browser interfering */
+}
+
+/* Prevent text selection on UI to feel more app-like */
+body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* MUI overrides for dark space theme */
+.MuiTooltip-tooltip {
+  backdrop-filter: blur(8px);
+}
+
+/* Glow text utility */
+.glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.6), 0 0 20px rgba(0, 229, 255, 0.3);
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 229, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 229, 255, 0.7); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.pulse-ring {
+  animation: ripple 2s ease-out infinite;
+}
+
+/* Concept highlight animation */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid #00E5FF;
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 229, 255, 0.25);
+  color: #E8F0F8;
+}
