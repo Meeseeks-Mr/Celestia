@@ -28,6 +28,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code working files
+.claude/
+.claude
+
 # Misc
 *.tsbuildinfo
 .eslintcache
