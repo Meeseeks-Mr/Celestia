@@ -5,6 +5,7 @@ import { module4 } from './module4'
 import { module5 } from './module5'
 import { module6 } from './module6'
 import { module7 } from './module7'
+import { module8 } from './module8'
 
 export const MODULES = [
   { id: 1, name: 'Earth & Sky', shortName: 'Basics', color: '#00E5FF', icon: '🌍' },
@@ -14,6 +15,7 @@ export const MODULES = [
   { id: 5, name: 'Celestial Fix', shortName: 'Fix', color: '#00E676', icon: '📌' },
   { id: 6, name: 'Route Geometry', shortName: 'Routes', color: '#00BCD4', icon: '✈️' },
   { id: 7, name: 'Twilight', shortName: 'Twilight', color: '#FF8C42', icon: '🌆' },
+  { id: 8, name: 'Magnetic Earth', shortName: 'Magnetic', color: '#FF6B6B', icon: '🧲' },
 ]
 
 export const ALL_CONCEPTS = [
@@ -24,6 +26,7 @@ export const ALL_CONCEPTS = [
   ...module5,
   ...module6,
   ...module7,
+  ...module8,
 ]
 
 export const CONCEPTS_BY_MODULE = {
@@ -34,6 +37,7 @@ export const CONCEPTS_BY_MODULE = {
   5: module5,
   6: module6,
   7: module7,
+  8: module8,
 }
 
 export const getConceptById = (id) => ALL_CONCEPTS.find((c) => c.id === id)

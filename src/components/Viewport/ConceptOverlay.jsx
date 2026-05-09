@@ -1771,6 +1771,507 @@ function TerminatorViz({ showLabels }) {
 }
 
 // =============================================================================
+// MODULE 8 — MAGNETIC EARTH
+// =============================================================================
+
+// Approximate magnetic-pole positions (drift yearly):
+//   North Magnetic Pole ≈ 80°N, 110°W   |   South Magnetic Pole ≈ 64°S, 137°E
+// For magnetic-axis math (field, meridians) we use the antipode of N as the
+// south end of the simplified tilted-dipole model.
+const MAG_N_LAT = 80
+const MAG_N_LON = -110
+const MAG_S_LAT_REAL = -64
+const MAG_S_LON_REAL = 137
+
+// Cone arrow tip aligned along (from → to)
+function ArrowTip({ from, to, color, size = 0.06 }) {
+  const dir = useMemo(() => to.clone().sub(from).normalize(), [from, to])
+  const quat = useMemo(() => {
+    const yAxis = new THREE.Vector3(0, 1, 0)
+    return new THREE.Quaternion().setFromUnitVectors(yAxis, dir)
+  }, [dir])
+  return (
+    <mesh position={to} quaternion={quat}>
+      <coneGeometry args={[size * 0.55, size * 1.6, 14]} />
+      <meshBasicMaterial color={color} />
+    </mesh>
+  )
+}
+
+// Unit vector pointing toward magnetic north in the observer's tangent plane
+function magneticNorthDir(obsLat, obsLon) {
+  const obs = latLonToVec3(obsLat, obsLon, 1).normalize()
+  const magN = latLonToVec3(MAG_N_LAT, MAG_N_LON, 1).normalize()
+  const v = magN.clone().sub(obs.clone().multiplyScalar(magN.dot(obs)))
+  if (v.lengthSq() < 1e-8) {
+    const enu = observerENU(obsLat, obsLon)
+    return enu.east.clone()
+  }
+  return v.normalize()
+}
+
+function MagneticPolesViz({ showLabels }) {
+  const magN = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, ER + 0.018), [])
+  const magS = useMemo(() => latLonToVec3(MAG_S_LAT_REAL, MAG_S_LON_REAL, ER + 0.018), [])
+  const magNUnit = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, 1).normalize(), [])
+  const innerAxis = useMemo(() => [
+    magNUnit.clone().multiplyScalar(ER + 0.02),
+    magNUnit.clone().multiplyScalar(-(ER + 0.02)),
+  ], [magNUnit])
+  return (
+    <group>
+      <PulsingDot position={magN} color="#FF6B6B" size={0.08} />
+      <PulsingDot position={magS} color="#FF6B6B" size={0.08} />
+      <GeoLine points={innerAxis} color="#FF6B6B" opacity={0.35} />
+      {showLabels && <>
+        <Label position={magN.clone().multiplyScalar(1.22)} text="N MAGNETIC POLE" color="#FF6B6B" sub="≈ 80°N, 110°W" />
+        <Label position={magS.clone().multiplyScalar(1.18)} text="S MAGNETIC POLE" color="#FF6B6B" sub="≈ 64°S, 137°E" />
+      </>}
+    </group>
+  )
+}
+
+function MagVsGeoPolesViz({ showLabels }) {
+  const geoN = useMemo(() => latLonToVec3(90, 0, ER + 0.018), [])
+  const geoS = useMemo(() => latLonToVec3(-90, 0, ER + 0.018), [])
+  const magN = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, ER + 0.018), [])
+  const magS = useMemo(() => latLonToVec3(MAG_S_LAT_REAL, MAG_S_LON_REAL, ER + 0.018), [])
+  const geoAxis = useMemo(() => [geoS.clone().multiplyScalar(1.45), geoN.clone().multiplyScalar(1.45)], [geoN, geoS])
+  const magNUnit = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, 1).normalize(), [])
+  const magAxis = useMemo(() => [
+    magNUnit.clone().multiplyScalar(-(ER + 0.02) * 1.45),
+    magNUnit.clone().multiplyScalar((ER + 0.02) * 1.45),
+  ], [magNUnit])
+  const offsetArc = useMemo(
+    () => gcArc(geoN.clone().normalize(), magN.clone().normalize(), ER + 0.026, 48),
+    [geoN, magN]
+  )
+  return (
+    <group>
+      <GeoLine points={geoAxis} color="#FFB830" opacity={0.6} />
+      <GeoLine points={magAxis} color="#FF6B6B" opacity={0.55} />
+      <PulsingDot position={geoN} color="#FFB830" size={0.07} />
+      <PulsingDot position={geoS} color="#FFB830" size={0.07} />
+      <PulsingDot position={magN} color="#FF6B6B" size={0.07} />
+      <PulsingDot position={magS} color="#FF6B6B" size={0.07} />
+      <ThickArc points={offsetArc} color="#FFFFFF" opacity={0.9} radius={0.012} />
+      {showLabels && <>
+        <Label position={geoN.clone().multiplyScalar(1.26)} text="TRUE NORTH" color="#FFB830" sub="geographic pole" />
+        <Label position={magN.clone().multiplyScalar(1.22)} text="MAGNETIC NORTH" color="#FF6B6B" sub="compass north" />
+        <Label position={geoS.clone().multiplyScalar(1.2)} text="True S" color="#FFB830" fontSize={9} />
+        <Label position={magS.clone().multiplyScalar(1.18)} text="Mag S" color="#FF6B6B" fontSize={9} />
+        <Label
+          position={offsetArc[Math.floor(offsetArc.length / 2)].clone().multiplyScalar(1.22)}
+          text="≈ 11° tilt"
+          color="#FFFFFF"
+          fontSize={10}
+        />
+      </>}
+    </group>
+  )
+}
+
+function MagneticFieldViz({ showLabels }) {
+  const magN = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, 1).normalize(), [])
+  const frame = useMemo(() => {
+    let p = new THREE.Vector3(0, 1, 0)
+    if (Math.abs(p.dot(magN)) > 0.95) p.set(1, 0, 0)
+    const u = new THREE.Vector3().crossVectors(magN, p).normalize()
+    const v = new THREE.Vector3().crossVectors(magN, u).normalize()
+    return { u, v }
+  }, [magN])
+
+  // Dipole field-line shells — r(theta) = L * sin²(theta) in mag-axis frame.
+  // We also collect arrow positions/directions per line to mark field direction.
+  // Convention: external field flows from the physical N (Antarctica end, -magN)
+  // toward the physical S (Arctic-labelled "N Magnetic Pole", +magN).
+  const { lines, arrows } = useMemo(() => {
+    const shells = [1.55, 2.0, 2.6, 3.4]
+    const lons = [0, 60, 120, 180, 240, 300]
+    const linesOut = []
+    const arrowsOut = []
+    for (const lon of lons) {
+      const lonR = (lon * Math.PI) / 180
+      const perp = frame.u
+        .clone().multiplyScalar(Math.cos(lonR))
+        .add(frame.v.clone().multiplyScalar(Math.sin(lonR)))
+      for (const L of shells) {
+        const pts = []
+        const N = 80
+        for (let i = 0; i <= N; i++) {
+          const theta = (i / N) * Math.PI
+          const r = L * Math.sin(theta) * Math.sin(theta)
+          if (r < ER + 0.025) continue
+          pts.push(
+            magN.clone().multiplyScalar(Math.cos(theta) * r)
+              .add(perp.clone().multiplyScalar(Math.sin(theta) * r))
+          )
+        }
+        if (pts.length > 2) {
+          linesOut.push(pts)
+          // Arrow at the equatorial bulge of each line (middle of point list).
+          // Field tangent points toward decreasing theta = decreasing index.
+          const m = Math.floor(pts.length / 2)
+          const to = pts[m - 1].clone()
+          const from = pts[m + 1].clone()
+          arrowsOut.push({ from, to })
+        }
+      }
+    }
+    return { lines: linesOut, arrows: arrowsOut }
+  }, [frame, magN])
+
+  const magNPole = useMemo(() => magN.clone().multiplyScalar(ER + 0.018), [magN])
+  const magSPole = useMemo(() => magN.clone().multiplyScalar(-(ER + 0.018)), [magN])
+
+  return (
+    <group>
+      {lines.map((pts, i) => (
+        <GeoLine key={i} points={pts} color="#FF6B6B" opacity={0.55} />
+      ))}
+      {arrows.map((a, i) => (
+        <ArrowTip key={`arr${i}`} from={a.from} to={a.to} color="#FF6B6B" size={0.05} />
+      ))}
+      <PulsingDot position={magNPole} color="#FF6B6B" size={0.07} />
+      <PulsingDot position={magSPole} color="#FF6B6B" size={0.07} />
+      {showLabels && <>
+        <Label
+          position={magN.clone().multiplyScalar(2.2)}
+          text="MAGNETIC FIELD"
+          color="#FF6B6B"
+          sub="arrows: N → S (physics convention)"
+        />
+        <Label position={magNPole.clone().multiplyScalar(1.2)} text='"N mag" (physics S)' color="#FF6B6B" fontSize={9} />
+        <Label position={magSPole.clone().multiplyScalar(1.2)} text='"S mag" (physics N)' color="#FF6B6B" fontSize={9} />
+      </>}
+    </group>
+  )
+}
+
+function MagneticMeridiansViz({ showLabels }) {
+  const geoMeridians = useMemo(
+    () => [-90, 0, 90, 180].map(lon => meridianArc(lon, 90, -90, ER + 0.011, 64)),
+    []
+  )
+
+  const magN = useMemo(() => latLonToVec3(MAG_N_LAT, MAG_N_LON, 1).normalize(), [])
+  const frame = useMemo(() => {
+    let p = new THREE.Vector3(0, 1, 0)
+    if (Math.abs(p.dot(magN)) > 0.95) p.set(1, 0, 0)
+    const u = new THREE.Vector3().crossVectors(magN, p).normalize()
+    const v = new THREE.Vector3().crossVectors(magN, u).normalize()
+    return { u, v }
+  }, [magN])
+
+  const magMeridians = useMemo(() => {
+    const lons = [0, 45, 90, 135]
+    const out = []
+    for (const lon of lons) {
+      const lonR = (lon * Math.PI) / 180
+      const perp = frame.u
+        .clone().multiplyScalar(Math.cos(lonR))
+        .add(frame.v.clone().multiplyScalar(Math.sin(lonR)))
+      const pts = []
+      const N = 96
+      for (let i = 0; i <= N; i++) {
+        const theta = (i / N) * Math.PI
+        pts.push(
+          magN.clone().multiplyScalar(Math.cos(theta))
+            .add(perp.clone().multiplyScalar(Math.sin(theta)))
+            .multiplyScalar(ER + 0.014)
+        )
+      }
+      out.push(pts)
+    }
+    return out
+  }, [frame, magN])
+
+  const magNPole = useMemo(() => magN.clone().multiplyScalar(ER + 0.02), [magN])
+  const magSPole = useMemo(() => magN.clone().multiplyScalar(-(ER + 0.02)), [magN])
+  const geoNPole = useMemo(() => latLonToVec3(90, 0, ER + 0.02), [])
+  const geoSPole = useMemo(() => latLonToVec3(-90, 0, ER + 0.02), [])
+
+  return (
+    <group>
+      {geoMeridians.map((pts, i) => (
+        <GeoLine key={`g${i}`} points={pts} color="#FFB830" opacity={0.45} />
+      ))}
+      {magMeridians.map((pts, i) => (
+        <ThickArc key={`m${i}`} points={pts} color="#FF6B6B" opacity={0.85} radius={0.011} />
+      ))}
+      <Dot position={geoNPole} color="#FFB830" size={0.05} />
+      <Dot position={geoSPole} color="#FFB830" size={0.05} />
+      <PulsingDot position={magNPole} color="#FF6B6B" size={0.06} />
+      <PulsingDot position={magSPole} color="#FF6B6B" size={0.06} />
+      {showLabels && <>
+        <Label
+          position={magNPole.clone().multiplyScalar(1.28)}
+          text="MAGNETIC MERIDIANS"
+          color="#FF6B6B"
+          sub="connect mag N ↔ mag S"
+        />
+        <Label position={geoNPole.clone().multiplyScalar(1.18)} text="Geo N" color="#FFB830" fontSize={9} />
+        <Label position={magNPole.clone().multiplyScalar(1.16)} text="Mag N" color="#FF6B6B" fontSize={9} />
+      </>}
+    </group>
+  )
+}
+
+function VariationViz({ obsLat, obsLon, showLabels }) {
+  const enu = useMemo(() => observerENU(obsLat, obsLon), [obsLat, obsLon])
+  const obsPt = useMemo(() => latLonToVec3(obsLat, obsLon, ER + 0.022), [obsLat, obsLon])
+  const arrowLen = 0.55
+  const trueTip = useMemo(
+    () => obsPt.clone().add(enu.north.clone().multiplyScalar(arrowLen)),
+    [obsPt, enu.north]
+  )
+  const magDir = useMemo(() => magneticNorthDir(obsLat, obsLon), [obsLat, obsLon])
+  const magTip = useMemo(
+    () => obsPt.clone().add(magDir.clone().multiplyScalar(arrowLen)),
+    [obsPt, magDir]
+  )
+  const variationDeg = useMemo(() => {
+    const cos = enu.north.dot(magDir)
+    return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI
+  }, [enu.north, magDir])
+  const arcPts = useMemo(() => {
+    const r = arrowLen * 0.7
+    const N = 40
+    const pts = []
+    const theta = (variationDeg * Math.PI) / 180 || 1e-6
+    const sinT = Math.sin(theta)
+    for (let i = 0; i <= N; i++) {
+      const t = i / N
+      const k0 = Math.sin((1 - t) * theta) / sinT
+      const k1 = Math.sin(t * theta) / sinT
+      const dir = enu.north.clone().multiplyScalar(k0).add(magDir.clone().multiplyScalar(k1))
+      pts.push(obsPt.clone().add(dir.multiplyScalar(r)))
+    }
+    return pts
+  }, [obsPt, enu.north, magDir, variationDeg])
+  return (
+    <group>
+      <PulsingDot position={obsPt} color="#00E5FF" size={0.045} />
+      <ThickArc points={[obsPt, trueTip]} color="#FFB830" opacity={1} radius={0.013} />
+      <ArrowTip from={obsPt} to={trueTip} color="#FFB830" size={0.05} />
+      <ThickArc points={[obsPt, magTip]} color="#FF6B6B" opacity={1} radius={0.013} />
+      <ArrowTip from={obsPt} to={magTip} color="#FF6B6B" size={0.05} />
+      <ThickArc points={arcPts} color="#FFFFFF" opacity={0.85} radius={0.008} />
+      {showLabels && <>
+        <Label
+          position={trueTip.clone().add(enu.north.clone().multiplyScalar(0.1))}
+          text="TRUE N"
+          color="#FFB830"
+          fontSize={10}
+        />
+        <Label
+          position={magTip.clone().add(magDir.clone().multiplyScalar(0.1))}
+          text="MAG N"
+          color="#FF6B6B"
+          fontSize={10}
+        />
+        <Label
+          position={arcPts[Math.floor(arcPts.length / 2)].clone().add(enu.up.clone().multiplyScalar(0.12))}
+          text={`Variation ≈ ${variationDeg.toFixed(1)}°`}
+          color="#FFFFFF"
+          fontSize={10}
+        />
+      </>}
+    </group>
+  )
+}
+
+function MagneticCompassViz({ obsLat, obsLon, showLabels }) {
+  const enu = useMemo(() => observerENU(obsLat, obsLon), [obsLat, obsLon])
+  const obsPt = useMemo(() => latLonToVec3(obsLat, obsLon, ER + 0.022), [obsLat, obsLon])
+  const magDir = useMemo(() => magneticNorthDir(obsLat, obsLon), [obsLat, obsLon])
+  const magOpp = useMemo(() => magDir.clone().multiplyScalar(-1), [magDir])
+
+  const needleLen = 0.32
+  const needleN = useMemo(
+    () => obsPt.clone().add(magDir.clone().multiplyScalar(needleLen)),
+    [obsPt, magDir]
+  )
+  const needleS = useMemo(
+    () => obsPt.clone().add(magOpp.clone().multiplyScalar(needleLen)),
+    [obsPt, magOpp]
+  )
+
+  const dialPts = useMemo(() => {
+    const r = needleLen * 1.18
+    const N = 64
+    const pts = []
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * 2 * Math.PI
+      pts.push(
+        obsPt.clone()
+          .add(enu.north.clone().multiplyScalar(Math.cos(a) * r))
+          .add(enu.east.clone().multiplyScalar(Math.sin(a) * r))
+      )
+    }
+    return pts
+  }, [obsPt, enu.north, enu.east])
+
+  return (
+    <group>
+      <GeoLine points={dialPts} color="#7A8FA8" opacity={0.75} />
+      <ThickArc points={[obsPt, needleN]} color="#FF6B6B" opacity={1} radius={0.018} />
+      <ArrowTip from={obsPt} to={needleN} color="#FF6B6B" size={0.06} />
+      <ThickArc points={[obsPt, needleS]} color="#A8BBCC" opacity={0.95} radius={0.014} />
+      <PulsingDot position={obsPt} color="#FFFFFF" size={0.04} />
+      {showLabels && <>
+        <Label
+          position={needleN.clone().add(magDir.clone().multiplyScalar(0.09))}
+          text="N"
+          color="#FF6B6B"
+          fontSize={11}
+          sub="(magnetic)"
+        />
+        <Label
+          position={needleS.clone().add(magOpp.clone().multiplyScalar(0.09))}
+          text="S"
+          color="#A8BBCC"
+          fontSize={11}
+        />
+        <Label
+          position={obsPt.clone().add(enu.up.clone().multiplyScalar(0.55))}
+          text="MAGNETIC COMPASS"
+          color="#FF6B6B"
+          sub="needle aligns with magnetic field"
+        />
+      </>}
+    </group>
+  )
+}
+
+function GyroCompassViz({ obsLat, obsLon, showLabels }) {
+  const enu = useMemo(() => observerENU(obsLat, obsLon), [obsLat, obsLon])
+  const obsPt = useMemo(() => latLonToVec3(obsLat, obsLon, ER + 0.022), [obsLat, obsLon])
+
+  const arrowLen = 0.42
+  const trueN = useMemo(
+    () => obsPt.clone().add(enu.north.clone().multiplyScalar(arrowLen)),
+    [obsPt, enu.north]
+  )
+
+  const gyroRef = useRef()
+  useFrame((_, dt) => {
+    if (gyroRef.current) gyroRef.current.rotation.y += dt * 6
+  })
+
+  // Orient gyro housing so its spin axis aligns with true north
+  const quat = useMemo(() => {
+    const yAxis = new THREE.Vector3(0, 1, 0)
+    return new THREE.Quaternion().setFromUnitVectors(yAxis, enu.north.clone().normalize())
+  }, [enu.north])
+
+  return (
+    <group>
+      <group position={obsPt} quaternion={quat}>
+        <group ref={gyroRef}>
+          <mesh>
+            <torusGeometry args={[0.18, 0.02, 14, 40]} />
+            <meshBasicMaterial color="#FFB830" />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.18, 0.012, 10, 36]} />
+            <meshBasicMaterial color="#FFD276" transparent opacity={0.7} />
+          </mesh>
+          <mesh>
+            <cylinderGeometry args={[0.013, 0.013, 0.42, 12]} />
+            <meshBasicMaterial color="#FFB830" />
+          </mesh>
+        </group>
+      </group>
+      <ThickArc points={[obsPt, trueN]} color="#FFB830" opacity={1} radius={0.014} />
+      <ArrowTip from={obsPt} to={trueN} color="#FFB830" size={0.055} />
+      <PulsingDot position={obsPt} color="#FFFFFF" size={0.04} />
+      {showLabels && <>
+        <Label
+          position={trueN.clone().add(enu.north.clone().multiplyScalar(0.09))}
+          text="TRUE N"
+          color="#FFB830"
+          fontSize={11}
+          sub="(geographic)"
+        />
+        <Label
+          position={obsPt.clone().add(enu.up.clone().multiplyScalar(0.6))}
+          text="GYRO COMPASS"
+          color="#FFB830"
+          sub="spinning wheel finds true north"
+        />
+      </>}
+    </group>
+  )
+}
+
+function TrueVsMagDirectionViz({ obsLat, obsLon, showLabels }) {
+  const enu = useMemo(() => observerENU(obsLat, obsLon), [obsLat, obsLon])
+  const obsPt = useMemo(() => latLonToVec3(obsLat, obsLon, ER + 0.022), [obsLat, obsLon])
+  const arrowLen = 0.55
+  const trueTip = useMemo(
+    () => obsPt.clone().add(enu.north.clone().multiplyScalar(arrowLen)),
+    [obsPt, enu.north]
+  )
+  const magDir = useMemo(() => magneticNorthDir(obsLat, obsLon), [obsLat, obsLon])
+  const magTip = useMemo(
+    () => obsPt.clone().add(magDir.clone().multiplyScalar(arrowLen * 0.92)),
+    [obsPt, magDir]
+  )
+  const variationDeg = useMemo(() => {
+    const cos = enu.north.dot(magDir)
+    return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI
+  }, [enu.north, magDir])
+  const arcPts = useMemo(() => {
+    const r = arrowLen * 0.55
+    const N = 40
+    const pts = []
+    const theta = (variationDeg * Math.PI) / 180 || 1e-6
+    const sinT = Math.sin(theta)
+    for (let i = 0; i <= N; i++) {
+      const t = i / N
+      const k0 = Math.sin((1 - t) * theta) / sinT
+      const k1 = Math.sin(t * theta) / sinT
+      const dir = enu.north.clone().multiplyScalar(k0).add(magDir.clone().multiplyScalar(k1))
+      pts.push(obsPt.clone().add(dir.multiplyScalar(r)))
+    }
+    return pts
+  }, [obsPt, enu.north, magDir, variationDeg])
+  return (
+    <group>
+      <PulsingDot position={obsPt} color="#00E5FF" size={0.045} />
+      <ThickArc points={[obsPt, trueTip]} color="#FFB830" opacity={1} radius={0.014} />
+      <ArrowTip from={obsPt} to={trueTip} color="#FFB830" size={0.055} />
+      <ThickArc points={[obsPt, magTip]} color="#FF6B6B" opacity={1} radius={0.013} />
+      <ArrowTip from={obsPt} to={magTip} color="#FF6B6B" size={0.05} />
+      <ThickArc points={arcPts} color="#FFFFFF" opacity={0.85} radius={0.008} />
+      {showLabels && <>
+        <Label
+          position={trueTip.clone().add(enu.north.clone().multiplyScalar(0.1))}
+          text="TRUE bearing"
+          color="#FFB830"
+          fontSize={10}
+          sub="from real N"
+        />
+        <Label
+          position={magTip.clone().add(magDir.clone().multiplyScalar(0.1))}
+          text="MAGNETIC bearing"
+          color="#FF6B6B"
+          fontSize={10}
+          sub="from compass N"
+        />
+        <Label
+          position={arcPts[Math.floor(arcPts.length / 2)].clone().add(enu.up.clone().multiplyScalar(0.13))}
+          text={`Variation = ${variationDeg.toFixed(1)}°`}
+          color="#FFFFFF"
+          fontSize={10}
+        />
+      </>}
+    </group>
+  )
+}
+
+// =============================================================================
 // MAIN DISPATCHER
 // =============================================================================
 
@@ -1845,6 +2346,15 @@ export default function ConceptOverlay() {
 
     case 'twilight-zones': return <TwilightZonesViz showLabels={showLabels} />
     case 'terminator': return <TerminatorViz showLabels={showLabels} />
+
+    case 'magnetic-poles': return <MagneticPolesViz showLabels={showLabels} />
+    case 'mag-vs-geo-poles': return <MagVsGeoPolesViz showLabels={showLabels} />
+    case 'magnetic-field': return <MagneticFieldViz showLabels={showLabels} />
+    case 'magnetic-meridians': return <MagneticMeridiansViz showLabels={showLabels} />
+    case 'variation': return <VariationViz obsLat={obsLat} obsLon={obsLon} showLabels={showLabels} />
+    case 'magnetic-compass': return <MagneticCompassViz obsLat={obsLat} obsLon={obsLon} showLabels={showLabels} />
+    case 'gyro-compass': return <GyroCompassViz obsLat={obsLat} obsLon={obsLon} showLabels={showLabels} />
+    case 'true-vs-mag-direction': return <TrueVsMagDirectionViz obsLat={obsLat} obsLon={obsLon} showLabels={showLabels} />
 
     default: return null
   }

@@ -15,9 +15,14 @@ const CATEGORIES = {
     'great-circle-route', 'rhumb-line', 'vertex',
     'terminator', 'twilight-zones', 'equation-of-time',
     'geographic-position',
+    // Magnetic-Earth concepts that focus on observer-local angles
+    'variation', 'magnetic-compass', 'gyro-compass', 'true-vs-mag-direction',
+    'magnetic-meridians',
   ]),
   globeOverview: new Set([
     'earth', 'observer',
+    // Magnetic-Earth concepts that need a wider view of Earth
+    'magnetic-poles', 'mag-vs-geo-poles', 'magnetic-field',
   ]),
   skyCentered: new Set([
     'celestial-sphere', 'celestial-equator', 'celestial-poles',

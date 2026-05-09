@@ -1,60 +1,91 @@
 # Celestia — Astro Navigation Visualizer
 
-An interactive 3D web app that makes celestial-navigation concepts spatially obvious. Pick any term — Zenith, GHA, the PZX triangle, a Celestial Fix — and watch it materialize on a live globe and celestial sphere.
+> **Astro Navigation Concepts …. Made easy.**
 
-Built with React, Three.js (@react-three/fiber), Material UI (dark mode), Zustand, and Framer Motion.
+Celestia is an interactive 3D web app that turns abstract celestial-navigation theory into something you can *see*, rotate, and play with. Pick any concept — from Latitude to the PZX triangle to a full Celestial Fix to Earth's magnetic field — and watch it materialize live on a textured Earth and a surrounding celestial sphere, with the camera automatically reframing for the best angle.
 
-**Developed by dio.stesso**
+Designed as a friendly teaching tool: simple language, gentle animations, and a layout that works on phones, tablets, and desktops.
 
----
-
-## Features
-
-- **61 concepts across 7 modules** — Earth & Sky Basics, Coordinates, Motion & Time, the PZX Triangle, Celestial Fix, Route Geometry, Twilight
-- **Real Earth texture** with day/night terminator (the night side stays dimly visible)
-- **Click anywhere on Earth** to move the observer (with confirmation dialog)
-- **Auto IP geolocation** on first load (with Arabian Sea as a fallback default)
-- **Auto view modes** — Zenith-up for observer-perspective concepts, North-up for sky-centered views
-- **Animated motion paths** — Sun and stars actually move along their paths (diurnal motion, ecliptic, rising/setting)
-- **Smooth camera focus** — the camera lerps to the optimal viewpoint for each concept
-- **Mobile-friendly** — vertical module rail, a non-blocking three-state bottom sheet, and a floating concept chip that keeps the visualization always visible
-- **Live coordinates** in the bottom bar (Position, GHA, LHA, Dec, Alt, Az), pause + speed controls
+**Created and developed by [dio.stesso](mailto:dio.stesso@gmail.com)**
 
 ---
 
-## Quick start
+## What it does
 
-Requires **Node 18+** and **npm**.
+### 69 concepts across 8 modules
+
+| Module | What's inside |
+| ------ | ------------- |
+| **🌍 Earth & Sky Basics** | Earth, Observer, Zenith, Nadir, Horizon, Celestial Sphere / Equator / Poles, Meridian, Prime Meridian, Celestial Hemisphere |
+| **📐 Coordinates** | Latitude, Longitude, Observer Position, Equator & Parallels, Great / Small / Vertical / Prime-Vertical Circles, Declination, GHA, LHA, SHA, Right Ascension, Hour Circle, First Point of Aries, Altitude, Zenith Distance, Azimuth, Bearing & Amplitude |
+| **⏱️ Motion & Time** | Diurnal Motion, Annual Motion (Ecliptic), Obliquity, Sidereal vs Solar Time, Rising / Setting, Culmination, Upper / Lower Transit, LAN, Equation of Time, Circumpolar Stars |
+| **🔺 PZX Triangle** | Overview + each vertex (Pole, Zenith, Body) and each side (Co-latitude, Polar Distance, Zenith Distance), interior Azimuth and LHA angles, Altitude equation |
+| **📌 Celestial Fix** | Geographic Position, Position Circle, Line of Position, full step-animated Fix, Intercept method, Running Fix |
+| **✈️ Route Geometry** | Great-Circle Route, multi-turn Rhumb Line (true Mercator-derived loxodrome), Vertex |
+| **🌆 Twilight** | Civil / Nautical / Astronomical bands, day/night Terminator |
+| **🧲 Magnetic Earth** | Magnetic Poles, Magnetic vs Geographic Poles, dipole Magnetic Field with directional arrows, Magnetic Meridians, Variation (Declination), Magnetic Compass, Gyro Compass, True vs Magnetic Direction |
+
+### What you can actually do
+
+- **Click any concept** → smooth camera transition + 3D visualization on Earth and/or the celestial sphere.
+- **Click anywhere on Earth** → two-stage confirmation dialog → observer relocates, all observer-dependent concepts update live (LHA, Az, Alt, Variation, etc.).
+- **Auto IP geolocation** on first load (with Arabian Sea as a graceful fallback if blocked).
+- **Smart auto-framing** — Zenith-up perspective for observer-centric concepts (horizon, alt-az, PZX); North-up for sky-centered concepts (declination, GHA, ecliptic).
+- **Animated celestial bodies** that actually trace their paths (diurnal motion, ecliptic, rising/setting, sub-solar point).
+- **Step-animated Celestial Fix** — a 20-second loop that shows how three sights become a fix, position circles and all.
+- **Rich descriptions** with school-grade analogies, technical tooltips, formulas, and cross-links to related concepts.
+- **Live readouts** — Position, GHA, LHA, Declination, Altitude, Azimuth, plus pause and time-speed controls in the bottom bar.
+- **Always-visible reference geometry** — polar axis and observer's horizon ring stay on so you never lose your bearings.
+- **Magnetic field with physics-correct direction arrows** — field lines drawn as a tilted dipole, with cone arrowheads showing the conventional N → S external flow (and a note on why Earth's "North Magnetic Pole" is technically a magnetic *south*).
+
+### Mobile-first, desktop-rich
+
+- **Desktop**: 88 px vertical module rail + 230 px concept list + dedicated description panel + 3D canvas + bottom readout bar.
+- **Mobile**: collapsible drawer with module rail and concept list, plus a non-blocking 3-state bottom sheet (peek / partial / expanded) and a floating concept chip on the canvas — the visualization stays visible and re-centers itself as the sheet resizes.
+
+---
+
+## Installation & running locally
+
+You need **Node.js 18+** and **npm**.
 
 ```bash
-# Install dependencies
+# 1. Clone the repo
+git clone https://github.com/<your-username>/celestia.git
+cd celestia
+
+# 2. Install dependencies
 npm install
 
-# Run the dev server (http://localhost:5173)
+# 3. Start the dev server
 npm run dev
+```
 
-# Build for production
-npm run build
+Open <http://localhost:5173/> — Vite will hot-reload as you edit.
 
-# Preview the production build locally
-npm run preview
+### Production build
+
+```bash
+npm run build      # creates ./dist
+npm run preview    # serves ./dist locally for verification
 ```
 
 ---
 
 ## Hosting on GitHub Pages
 
-The project is pre-configured for GitHub Pages: `vite.config.js` uses `base: './'` so assets resolve under any URL path, and `gh-pages` is wired up as a dev dependency.
+The repo is pre-configured for GitHub Pages:
+
+- `vite.config.js` uses `base: './'` so assets resolve from any URL path.
+- Earth textures load via `import.meta.env.BASE_URL` so they work on subpaths (e.g. `/celestia/`).
+- `gh-pages` is wired up as a dev dependency.
 
 ```bash
-# One-time setup (already done if you cloned this repo)
-npm install
-
-# Each time you want to publish:
+# Publish (or re-publish) the live site
 npm run deploy
 ```
 
-This builds the site and pushes it to a `gh-pages` branch. In the repo's **Settings → Pages**, set the source to the `gh-pages` branch (root). Your site will be live at `https://YOUR-USERNAME.github.io/REPO-NAME/`.
+This builds to `dist/` and pushes it to a `gh-pages` branch on your remote. In the repo's **Settings → Pages**, set **Source: `gh-pages` branch / root**. Your site will be live at `https://<your-username>.github.io/<repo-name>/` within a minute or two.
 
 ---
 
@@ -62,39 +93,37 @@ This builds the site and pushes it to a `gh-pages` branch. In the repo's **Setti
 
 ```
 celestia/
-├── public/
-│   └── textures/                  Earth day/normal/specular/clouds (NASA Blue Marble)
+├── public/textures/                NASA Blue Marble (day, normal, specular, clouds)
 ├── src/
-│   ├── App.jsx                    Root + IP geolocation
-│   ├── main.jsx                   Entry, theme provider
-│   ├── theme.js                   MUI dark-mode theme (Inter, Roboto Mono)
-│   ├── store/
-│   │   └── useStore.js            Zustand store (concept, observer, mobile state)
+│   ├── App.jsx                     Root + IP geolocation
+│   ├── main.jsx                    Entry, theme provider
+│   ├── theme.js                    MUI dark theme (Inter, Roboto Mono)
+│   ├── store/useStore.js           Zustand store (concept, observer, mobile state)
 │   ├── concepts/
-│   │   ├── index.js               MODULES + ALL_CONCEPTS registry
-│   │   └── module1..7.js          Concept data (descriptions, tooltips, formulas, process steps)
+│   │   ├── index.js                MODULES + ALL_CONCEPTS registry
+│   │   └── module1..8.js           69 concepts: descriptions, tooltips, formulas
 │   ├── components/
-│   │   ├── MainLayout.jsx         Responsive layout
-│   │   ├── TopBar.jsx             Header + mobile menu
-│   │   ├── LeftPanel/             Module rail + concept list
-│   │   ├── RightPanel.jsx         Description panel (desktop)
-│   │   ├── BottomBar.jsx          Live readouts + speed controls
-│   │   ├── SplashScreen.jsx       Animated splash
-│   │   ├── SettingsPanel.jsx      Observer position, scene toggles
-│   │   ├── MoveObserverDialog.jsx Two-stage observer placement confirm
-│   │   ├── MobileConceptChip.jsx  Floating chip on visualization
-│   │   ├── MobileBottomSheet.jsx  Three-state resizable info panel
+│   │   ├── MainLayout.jsx          Responsive layout
+│   │   ├── TopBar.jsx              Header + mobile menu trigger
+│   │   ├── LeftPanel/              Module rail + concept list
+│   │   ├── RightPanel.jsx          Description panel (desktop)
+│   │   ├── BottomBar.jsx           Live readouts + speed controls
+│   │   ├── SplashScreen.jsx        Animated splash
+│   │   ├── SettingsPanel.jsx       Observer position, scene toggles
+│   │   ├── MoveObserverDialog.jsx  Two-stage observer placement
+│   │   ├── MobileConceptChip.jsx   Floating chip on visualization
+│   │   ├── MobileBottomSheet.jsx   Three-state resizable info panel
 │   │   └── Viewport/
-│   │       ├── SceneWrapper.jsx   <Canvas>, OrbitControls
-│   │       ├── Scene.jsx          Lights, polar axis, always-on horizon
-│   │       ├── Earth.jsx          Textured Earth, atmosphere, click-to-place
+│   │       ├── SceneWrapper.jsx    <Canvas>, OrbitControls
+│   │       ├── Scene.jsx           Lights, polar axis, always-on horizon
+│   │       ├── Earth.jsx           Textured Earth, atmosphere, click-to-place
 │   │       ├── CelestialSphere.jsx
-│   │       ├── Observer.jsx       Observer marker + lat/lon ↔ Vec3 utilities
+│   │       ├── Observer.jsx        Marker + lat/lon ↔ Vec3 utilities
 │   │       ├── CameraController.jsx  Smooth lerp + auto-derived view mode
-│   │       └── ConceptOverlay.jsx 30+ visualization components
+│   │       └── ConceptOverlay.jsx  All 60+ visualization components
 │   └── styles/globals.css
 ├── index.html
-├── vite.config.js                 base: './' for GitHub Pages compatibility
+├── vite.config.js                  base: './' for GitHub Pages
 └── package.json
 ```
 
@@ -102,26 +131,32 @@ celestia/
 
 ## Tech stack
 
-- **React 18** + **Vite** — UI framework, fast dev server, production bundler
-- **Three.js** + **@react-three/fiber** + **@react-three/drei** — 3D scene
+- **React 18** + **Vite** — fast UI, instant HMR, lean production bundles
+- **Three.js** + **@react-three/fiber** + **@react-three/drei** — declarative 3D
 - **Material UI v5** (dark theme) — components, layout primitives, breakpoints
-- **Zustand** — global state (no Redux boilerplate)
-- **Framer Motion** — splash screen + panel transitions
+- **Zustand** — minimal global state
+- **Framer Motion** — splash + panel transitions
 - **Inter** + **Roboto Mono** — typography (Google Fonts)
 
 ---
 
 ## Coordinate convention
 
-`lat=0, lon=0 → (0, 0, +R)` — Greenwich faces +Z (camera). Conversion helpers live in `src/components/Viewport/Observer.jsx` (`latLonToVec3`, `vec3ToLatLon`).
+`lat=0, lon=0 → (0, 0, +R)` — Greenwich faces +Z (camera at startup). Conversion helpers live in `src/components/Viewport/Observer.jsx` (`latLonToVec3`, `vec3ToLatLon`). The Earth texture is offset 0.25 in U so the standard equirectangular Blue Marble image aligns with this convention.
 
-Earth texture is offset 0.25 in U so the standard equirectangular Blue Marble image aligns with this convention.
+---
+
+## Credits
+
+- **Concept, design, and development:** [dio.stesso](mailto:dio.stesso@gmail.com)
+- **Earth imagery:** NASA Blue Marble
+- **Open-source libraries:** React, Three.js, MUI, Zustand, Framer Motion, Vite
 
 ---
 
 ## License
 
-MIT — feel free to fork, modify, share.
+MIT — fork it, remix it, share it. If it helps a student understand the night sky a little better, that's the point.
 
 ---
 

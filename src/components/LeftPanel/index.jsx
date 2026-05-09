@@ -17,6 +17,7 @@ import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory'
 import GpsFixedIcon from '@mui/icons-material/GpsFixed'
 import RouteIcon from '@mui/icons-material/Route'
 import WbTwilightIcon from '@mui/icons-material/WbTwilight'
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
 import ConceptItem from './ConceptItem'
 import { MODULES, CONCEPTS_BY_MODULE, ALL_CONCEPTS } from '../../concepts/index'
 import useStore from '../../store/useStore'
@@ -29,6 +30,7 @@ const MODULE_ICONS = {
   5: GpsFixedIcon,
   6: RouteIcon,
   7: WbTwilightIcon,
+  8: ExploreOutlinedIcon,
 }
 
 const RAIL_WIDTH = 88
